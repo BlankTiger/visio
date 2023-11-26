@@ -195,43 +195,9 @@ fn app() -> anyhow::Result<!> {
 
     let mut distances = [0u16; 16];
     loop {
-        for i in 0..=16 {
-            let channel = channel_from(i);
-            for i in (0..4000).rev() {
-                pwm_controller.set_channel_on_off(channel, 0, i).unwrap();
-            }
-            display_text(
-                &alloc::format!("Currently running channel:\n{:?}", channel),
-                text_style,
-                &mut display,
-            );
-            delay.delay_ms(500);
-        }
-
         update_distances(&mut tof, &mut distances);
-        update_vibration_strength(&mut pwm_controller, distances);
         display_text(&stringify_distances(distances), small_style, &mut display);
-        delay.delay_ms(3000);
-
-        //         let msg = format_no_std::show(
-        //             &mut buffer,
-        //             format_args!(
-        //                 "SPAD info:\nCenter (should be): {}\nCenter (is): {}\nSize: {}x{}\nEnabled SPADs: {}\nTiming budget: {}\nIntermeasurement: {}",
-        //                 roi_centers[idx],
-        //                 tof.get_roi_center().unwrap().spad,
-        //                 tof.get_roi().unwrap().width,
-        //                 tof.get_roi().unwrap().height,
-        //                 tof.get_spad_count().unwrap(),
-        //                 tof.get_timing_budget_ms().unwrap(),
-        //                 tof.get_inter_measurement_period_ms().unwrap()
-        //             ),
-        //         )
-        //         .unwrap();
-        //         display_text(msg, small_style, &mut display);
-        //         delay.delay_ms(100);
-        //     }
-        //
-        // }
+        update_vibration_strength(&mut pwm_controller, distances);
     }
 }
 
@@ -282,7 +248,11 @@ fn update_vibration_strength<
 }
 
 fn vibration_strength_from(dist: &u16) -> u16 {
-    1400 * dist / 4000
+    let mut strength = core::cmp::max(1300 - *dist, 0) * 2 / 3;
+    if strength > 860 {
+        strength = 0;
+    }
+    strength
 }
 
 fn channel_from(v: u8) -> Channel {
